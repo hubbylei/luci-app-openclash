@@ -116,6 +116,20 @@ o:depends("en_mode", "redir-host-tun")
 o:depends("en_mode", "redir-host-vpn")
 o:depends("en_mode", "redir-host-mix")
 
+o = s:taboption("op_mode", Flag, "netflix_domains_prefetch", font_red..bold_on..translate("Prefetch Netflix Domains")..bold_off..font_off)
+o.description = translate("Prevent Some Devices From Directly Using IP Access To Cause Unlocking Failure")
+o.default=0
+
+o = s:taboption("op_mode", Value, "netflix_domains_prefetch_interval", translate("Netflix Domains Prefetch Interval(min)"))
+o.default=1440
+o.datatype = "uinteger"
+o.description = translate("Will Run Once Immediately After Started, The Interval Does Not Need To Be Too Short (Take Effect Immediately After Commit)")
+o:depends("netflix_domains_prefetch", "1")
+
+o = s:taboption("op_mode", DummyValue, "netflix_domains_update", translate("Update Netflix Domains List"))
+o:depends("netflix_domains_prefetch", "1")
+o.template = "openclash/download_netflix_domains"
+
 o = s:taboption("op_mode", Flag, "small_flash_memory", translate("Small Flash Memory"))
 o.description = translate("Move Core And GEOIP Data File To /tmp/etc/openclash For Small Flash Memory Device")
 o.default=0
@@ -215,8 +229,14 @@ o = s:taboption("dns", Flag, "append_wan_dns", font_red..bold_on..translate("App
 o.description = font_red..bold_on..translate("Append The Upstream Assigned DNS And Gateway IP To The Nameserver")..bold_off..font_off
 o.default=1
 
+if op_mode == "fake-ip" then
+o = s:taboption("dns", Flag, "store_fakeip", font_red..bold_on..translate("Persistence Fake-IP")..bold_off..font_off)
+o.description = font_red..bold_on..translate("Cache Fake-IP DNS Resolution Records To File, Improve The Response Speed After Startup")..bold_off..font_off
+o.default=1
+end
+
 o = s:taboption("dns", Flag, "ipv6_dns", translate("IPv6 DNS Resolve"))
-o.description = font_red..bold_on..translate("Enable Clash to Resolve ipv6 DNS Requests")..bold_off..font_off
+o.description = font_red..bold_on..translate("Enable Clash to Resolve IPv6 DNS Requests")..bold_off..font_off
 o.default=0
 
 o = s:taboption("dns", Flag, "disable_masq_cache", translate("Disable Dnsmasq's DNS Cache"))
@@ -364,6 +384,7 @@ luci.ip.neighbors({ family = 4 }, function(n)
 	end
 end)
 
+if string.len(SYS.exec("/usr/share/openclash/openclash_get_network.lua 'gateway6'")) ~= 0 then
 luci.ip.neighbors({ family = 6 }, function(n)
 	if n.mac and n.dest then
 		ip_b:value(n.dest:string())
@@ -372,6 +393,7 @@ luci.ip.neighbors({ family = 6 }, function(n)
 		mac_w:value(n.mac, "%s (%s)" %{ n.mac, n.dest:string() })
 	end
 end)
+end
 end
 
 o = s:taboption("lan_ac", DynamicList, "wan_ac_black_ips", translate("WAN Bypassed Host List"))
@@ -493,7 +515,6 @@ o.description = translate("Custom GEOIP Data URL, Click Button Below To Refresh 
 o:value("https://cdn.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/lite/Country.mmdb", translate("Alecthw-lite-Version")..translate("(Default mmdb)"))
 o:value("https://cdn.jsdelivr.net/gh/alecthw/mmdb_china_ip_list@release/Country.mmdb", translate("Alecthw-Version")..translate("(All Info mmdb)"))
 o:value("https://cdn.jsdelivr.net/gh/Hackl0us/GeoIP2-CN@release/Country.mmdb", translate("Hackl0us-Version")..translate("(Only CN)"))
-o:value("https://static.clash.to/GeoIP2/GeoIP2-Country.mmdb", translate("Static.clash.to"))
 o:value("https://geolite.clash.dev/Country.mmdb", translate("Geolite.clash.dev"))
 o.default = "http://www.ideame.top/mmdb/Country.mmdb"
 
